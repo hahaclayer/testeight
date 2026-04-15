@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>每日运势</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #050710 0%, #0a0820 25%, #120d35 50%, #1a1040 75%, #1f0d28 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 星空背景 */
+    .stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle var(--duration) ease-in-out infinite;
+      opacity: 0;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0; transform: scale(0.5); }
+      50% { opacity: var(--max-opacity); transform: scale(1); }
+    }
+
+    /* 流星 */
+    .shooting-star {
+      position: fixed;
+      width: 120px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.4), transparent);
+      border-radius: 2px;
+      filter: blur(0.8px);
+      animation: shoot 3.5s linear infinite;
+      opacity: 0;
+      z-index: 0;
+    }
+
+    @keyframes shoot {
+      0% {
+        transform: translate(0, 0) rotate(-35deg);
+        opacity: 0;
+      }
+      3% {
+        opacity: 1;
+      }
+      20% {
+        opacity: 1;
+      }
+      28% {
+        transform: translate(calc(-100vw - 400px), calc(100vh + 200px)) rotate(-35deg);
+        opacity: 0;
+      }
+      100% {
+        transform: translate(calc(-100vw - 400px), calc(100vh + 200px)) rotate(-35deg);
+        opacity: 0;
+      }
+    }
+
+    /* 标题区域 */
+    .header {
+      text-align: center;
+      z-index: 10;
+      margin-bottom: 32px;
+      transform: translateY(-40px);
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f0d78c;
+      letter-spacing: 6px;
+      text-shadow: 0 0 20px rgba(240, 215, 140, 0.5), 0 0 40px rgba(240, 215, 140, 0.2);
+      animation: titleGlow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes titleGlow {
+      from { text-shadow: 0 0 20px rgba(240, 215, 140, 0.5), 0 0 40px rgba(240, 215, 140, 0.2); }
+      to { text-shadow: 0 0 30px rgba(240, 215, 140, 0.8), 0 0 60px rgba(240, 215, 140, 0.4), 0 0 80px rgba(240, 215, 140, 0.1); }
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.45);
+      margin-top: 8px;
+      letter-spacing: 2px;
+    }
+
+    /* 卡片容器 */
+    .card-container {
+      perspective: 1500px;
+      z-index: 10;
+      transform: translateY(-40px);
+    }
+
+    .card {
+      width: 326px;
+      height: 536px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1s cubic-bezier(0.4, 0.0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .card.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 16px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      overflow: hidden;
+    }
+
+    /* 卡片背面（未打开状态）*/
+    .card-back {
+      background: url('card-front.png') no-repeat center center;
+      background-size: cover;
+    }
+
+    .tap-btn {
+      position: absolute;
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 160px;
+      height: auto;
+      z-index: 2;
+      animation: btnPulse 2s ease-in-out infinite;
+      cursor: pointer;
+    }
+
+    @keyframes btnPulse {
+      0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
+      50% { opacity: 0.9; transform: translateX(-50%) scale(1.03); }
+    }
+
+    /* 卡片正面（已打开状态）*/
+    .card-front {
+      background: url('card-back.png') no-repeat center center;
+      background-size: cover;
+      transform: rotateY(180deg);
+      padding: 180px 80px 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .card-front .tap-btn {
+      transform: translateX(-50%) rotateY(180deg);
+    }
+
+    .result-header {
+      text-align: center;
+      margin-bottom: 16px;
+      width: 100%;
+    }
+
+    .date-label {
+      font-size: 13px;
+      color: #e5FFFFFF;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+
+    .fortune-level {
+      font-size: 26px;
+      font-weight: 700;
+      color: #e5FFFFFF;
+      letter-spacing: 6px;
+    }
+
+    .level-stars {
+      margin-top: 8px;
+      font-size: 18px;
+      letter-spacing: 4px;
+      animation: starBounce 1.5s ease-in-out infinite;
+    }
+
+    @keyframes starBounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    /* 分隔线 */
+    .divider {
+      width: 40%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+      margin: 0 auto 16px;
+    }
+
+    /* 运势内容区 */
+    .fortune-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    .fortune-text {
+      font-size: 9.8px;
+      line-height: 1.85;
+      color: #e5FFFFFF;
+      text-align: center;
+      width: 100%;
+      word-break: break-word;
+      animation: fadeInUp 0.8s ease-out both;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 底部操作提示 */
+    .action-hint {
+      margin-top: 12px;
+      color: #e5FFFFFF;
+      opacity: 0.35;
+      font-size: 11px;
+      letter-spacing: 1px;
+      animation: fadeInUp 0.8s ease-out 0.3s both;
+    }
+
+    /* 粒子效果容器 */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: particleRise var(--dur) ease-out forwards;
+    }
+
+    @keyframes particleRise {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(var(--ty)) translateX(var(--tx)) scale(0);
+      }
+    }
+
+    /* 底部装饰 */
+    .footer-deco {
+      position: fixed;
+      bottom: 24px;
+      text-align: center;
+      z-index: 10;
+      color: rgba(255, 255, 255, 0.15);
+      font-size: 11px;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 星空背景 -->
+  <div class="stars" id="stars"></div>
+
+  <!-- 流星 -->
+  <div class="shooting-star" style="top: -5%; left: 90%; animation-delay: 0s;"></div>
+  <div class="shooting-star" style="top: 5%; left: 105%; animation-delay: 2s;"></div>
+  <div class="shooting-star" style="top: -10%; left: 80%; animation-delay: 4.5s;"></div>
+  <div class="shooting-star" style="top: 2%; left: 115%; animation-delay: 6.5s;"></div>
+  <div class="shooting-star" style="top: 10%; left: 85%; animation-delay: 9s;"></div>
+  <div class="shooting-star" style="top: -8%; left: 100%; animation-delay: 11.5s;"></div>
+
+  <!-- 粒子容器 -->
+  <div class="particles" id="particles"></div>
+
+  <!-- 标题 -->
+  <div class="header">
+    <h1 class="title">✦ 每日运势 ✦</h1>
+    <p class="subtitle">探索今日的宇宙指引</p>
+  </div>
+
+  <!-- 运势卡片 -->
+  <div class="card-container">
+    <div class="card" id="fortuneCard" onclick="flipCard()">
+      <!-- 背面：未打开状态 -->
+      <div class="card-face card-back">
+        <img src="btn-open.png" class="tap-btn" id="tapBtn" alt="点击翻开">
+      </div>
+
+      <!-- 正面：已打开状态 -->
+      <div class="card-face card-front">
+        <div class="result-header">
+          <p class="date-label" id="dateLabel"></p>
+          <h2 class="fortune-level" id="fortuneLevel"></h2>
+          <p class="level-stars" id="levelStars"></p>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="fortune-content">
+          <p class="fortune-text" id="fortuneText"></p>
+        </div>
+
+        <img src="btn-opened.png" class="tap-btn" alt="已翻开">
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-deco">🌙 命运的齿轮悄然转动 🌙</div>
+
+  <script>
+    // ===== 运势数据 =====
+    const fortuneData = [
+      // 大吉
+      { level: "大吉", stars: "⭐⭐⭐⭐⭐", texts: [
+        "今日紫气东来，诸事顺遂。工作上会有意外的好消息传来，财运亨通，宜把握机会大胆行动。",
+        "星象显示今日是你的幸运日！贵人运极旺，遇到困难会有人主动伸出援手，适合开展新计划。",
+        "今日五行相生，能量充沛。无论是事业还是感情，都将迎来突破性进展，保持自信即可。",
+        "天降祥瑞之兆！今天适合做重要决定，直觉格外敏锐，相信自己的判断力不会出错。",
+        "月朗星稀，福泽深厚。今日社交运极佳，容易结识志同道合的朋友或合作伙伴。",
+        "今日文昌星高照，学习能力和创造力达到巅峰状态，是攻克难题、展现才华的绝佳时机。",
+        "祥云笼罩，吉星高照！财运方面有意外收获的可能，不妨买张彩票试试手气。",
+        "今日桃花运旺盛，单身者有望邂逅心仪对象，有伴侣者感情将更加甜蜜稳固。",
+        "金光普照，万事如意！健康运良好，精力充沛，是运动健身、改变生活习惯的好日子。",
+        "瑞气盈门，百无禁忌！今天做任何事情都会顺风顺水，可以放心大胆地去追求目标。",
+      ]},
+      // 吉
+      { level: "吉", stars: "⭐⭐⭐⭐", texts: [
+        "今日运势平稳向好，工作上有小幅进展。保持耐心和专注，成功就在不远处等你。",
+        "温和而稳定的一天，适合处理日常事务和完成积压的工作。人际关系和谐融洽。",
+        "财运平稳，收支平衡。不宜进行大额投资，但小额消费能带来不错的购物体验。",
+        "今日思维清晰，逻辑性强，适合分析问题、制定计划。把复杂的事情拆解开来逐一解决吧。",
+        "感情运势温和，与家人朋友的交流会很愉快。有空的话给久未联系的朋友发个问候吧。",
+        "今日灵感频现，创意工作者会有不错的点子冒出来，记得及时记录下来。",
+        "健康方面一切正常，但要注意用眼过度的问题。适当休息，眺望远方放松眼睛。",
+        "学习效率较高的一天，适合阅读、上课或自学新技能。专注力比平时更强。",
+        "出行顺利，交通工具运行正常。如果需要出差或旅行，今天是个不错的选择。",
+        "今日情绪稳定，心态平和。遇到不顺心的事也能坦然面对，这种状态很难得。",
+      ]},
+      // 中吉
+      { level: "中吉", stars: "⭐⭐⭐", texts: [
+        "今日运势平平，波澜不惊。按部就班地完成日常任务即可，不必强求太多变化。",
+        "整体走势稳中有升，虽然没有大惊喜，但也不会遇到什么挫折。平淡也是一种福气。",
+        "工作上可能会遇到一些小麻烦，但都在可控范围内。冷静应对就能顺利解决。",
+        "财运一般，量入为出是今天的理财原则。避免冲动消费和不必要的开支。",
+        "社交方面维持现状就好，不需要刻意去拓展人脉。和老朋友聚聚也是不错的选择。",
+        "今日适合独处和反思，花些时间整理思绪、规划未来，会比盲目行动更有收获。",
+        "身体略有疲惫感，可能是最近太忙了。今晚早点休息，给自己充充电。",
+        "感情上没有太大波动，有伴侣的可以一起做顿饭看场电影，享受平凡的幸福。",
+        "学习状态中等，不太适合攻克高难度课题，但复习巩固已有知识的效果不错。",
+        "今天适合做一些力所能及的小善事，帮助他人不仅能带来快乐，还能积累好人缘。",
+      ]},
+      // 小吉
+      { level: "小吉", stars: "⭐⭐", texts: [
+        "今日运势略显低迷，但不必过于担心。保持低调行事，少说多做，平安度过即可。",
+        "可能会遇到一些小阻碍和延误，计划赶不上变化的时候，灵活调整心态最重要。",
+        "财运偏弱，今天不是花钱的好日子。如果非要消费，优先考虑必需品而非奢侈品。",
+        "工作中注意细节，粗心大意可能导致返工。多检查一遍总没错，慢工出细活。",
+        "情绪可能有些起伏不定，容易因为小事烦心。深呼吸，喝杯热茶，让自己平静下来。",
+        "今天不适合做重大决定，信息不够充分的情况下贸然行动容易后悔。再等等看吧。",
+        "社交能量较低，不想出门社交也没关系。在家看看书、听听音乐，享受独处时光。",
+        "健康方面要注意肠胃保养，饮食清淡一些，少吃生冷辛辣的食物为好。",
+        "学习效率一般般，强行逼自己学习反而适得其反。不如先从轻松的内容开始热身。",
+        "交通方面可能会有小拥堵或延误，出门记得预留充足的时间，以免迟到误事。",
+      ]},
+      // 需谨慎
+      { level: "需谨慎", stars: "⭐", texts: [
+        "今日星象显示有些波动，凡事多留个心眼。重要文件备份好，沟通时确认清楚再执行。",
+        "可能会遇到一些意料之外的状况，保持冷静和灵活性是今天的关键词。",
+        "财务方面要格外小心，切勿轻信任何投资建议或借钱请求。守好自己的钱袋子。",
+        "工作中容易与人产生分歧，控制好情绪，不要在气头上说出令自己后悔的话。",
+        "今天适合韬光养晦，低调做事。不要在这个时候去争取什么，等待更好的时机。",
+        "注意防范小人，不是所有人都怀着善意。对不熟悉的人保持适当的距离和警惕。",
+        "身体可能发出一些警示信号，比如头痛或肩颈酸痛。别硬撑着，该休息就休息。",
+        "感情上可能出现一些误会或不愉快，坦诚沟通比冷战更有助于解决问题。",
+        "出行要特别注意安全，开车减速慢行，走路看路，不要边走边看手机。",
+        "今天是内省的好日子，回顾近期的得失，思考哪些地方可以改进。成长往往来自反思。",
+      ]},
+    ];
+
+    let isFlipped = false;
+
+    // ===== 初始化星空 =====
+    function createStars() {
+      const container = document.getElementById('stars');
+      const count = 120;
+      for (let i = 0; i < count; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        const size = Math.random() * 2.5 + 0.5;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.setProperty('--duration', (Math.random() * 4 + 2) + 's');
+        star.style.setProperty('--max-opacity', (Math.random() * 0.7 + 0.3).toString());
+        star.style.animationDelay = (Math.random() * 5) + 's';
+        container.appendChild(star);
+      }
+    }
+
+    // ===== 设置日期 =====
+    function setDateLabel() {
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
+      const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      const weekDay = weekDays[now.getDay()];
+      document.getElementById('dateLabel').textContent = `${month}月${day}日 ${weekDay}`;
+    }
+
+    // ===== 随机获取运势 =====
+    function generateFortune() {
+      // 加权随机选择等级（好的运势概率更高）
+      const weights = [20, 25, 25, 15, 15]; // 大吉、吉、中吉、小吉、需谨慎
+      const totalWeight = weights.reduce((a, b) => a + b, 0);
+      let random = Math.random() * totalWeight;
+      let levelIndex = 0;
+
+      for (let i = 0; i < weights.length; i++) {
+        random -= weights[i];
+        if (random <= 0) {
+          levelIndex = i;
+          break;
+        }
+      }
+
+      const category = fortuneData[levelIndex];
+      const textIndex = Math.floor(Math.random() * category.texts.length);
+
+      document.getElementById('fortuneLevel').textContent = category.level;
+      document.getElementById('levelStars').textContent = category.stars;
+      document.getElementById('fortuneText').textContent = category.texts[textIndex];
+    }
+
+    // ===== 创建粒子特效 =====
+    function createParticles() {
+      const container = document.getElementById('particles');
+      container.innerHTML = '';
+      const colors = ['#f0d78c', '#ff9a76', '#c9a0ff', '#87ceeb', '#ffd700', '#ff69b4'];
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+
+      for (let i = 0; i < 40; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        const size = Math.random() * 8 + 3;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 250 + 100;
+        const tx = Math.cos(angle) * distance;
+        const ty = Math.sin(angle) * distance - 100;
+        const dur = Math.random() * 1.5 + 1;
+
+        particle.style.cssText = `
+          width: ${size}px;
+          height: ${size}px;
+          background: ${color};
+          left: ${centerX}px;
+          top: ${centerY}px;
+          box-shadow: 0 0 ${size * 2}px ${color};
+          --tx: ${tx}px;
+          --ty: ${ty}px;
+          --dur: ${dur}s;
+          animation-delay: ${Math.random() * 0.3}s;
+        `;
+        container.appendChild(particle);
+      }
+
+      // 清理粒子
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 2500);
+    }
+
+    // ===== 翻转卡片 =====
+    function flipCard() {
+      const card = document.getElementById('fortuneCard');
+      const tapBtn = document.getElementById('tapBtn');
+
+      if (!isFlipped) {
+        // 打开运势
+        generateFortune();
+        card.classList.add('flipped');
+        isFlipped = true;
+        tapBtn.src = 'btn-opened.png';
+        tapBtn.style.animation = 'none';
+        setTimeout(createParticles, 450); // 翻转到一半时触发粒子
+      } else {
+        // 关闭运势
+        card.classList.remove('flipped');
+        isFlipped = false;
+        tapBtn.src = 'btn-open.png';
+        tapBtn.style.animation = '';
+      }
+    }
+
+    // ===== 初始化 =====
+    createStars();
+    setDateLabel();
+  </script>
+</body>
+</html>
